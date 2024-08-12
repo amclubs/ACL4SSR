@@ -1,0 +1,46 @@
+name: 更新 Clash/adobe.list
+
+on:
+  # 每 3 天运行一次
+  schedule:
+    - cron: '0 0 */3 * *'
+  # 手动触发
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: 下载 Adobe 规则
+        run: |
+          curl -L https://raw.githubusercontent.com/ignaciocastro/adobe-is-dumb/main/list.txt -o adobe.list
+          sed -i 's/0\.0\.0\.0 /DOMAIN,/g' adobe.list
+          # 检查Clash文件夹是否存在，如果不存在则创建
+          if [ ! -d "Clash" ]; then
+            mkdir Clash
+          fi
+          mv adobe.list Clash/
+
+      - name: Set up Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Add and commit changes
+        run: |
+          # Output the status to help debug
+          git status
+          # Add the file to staging area
+          git add Clash/adobe.list
+          # Output the diff to ensure there are changes
+          git diff --cached
+          # Commit the changes if any
+          git commit -m "Downloaded file on $(date "+%Y/%m/%d %H:%M:%S")" || echo "No changes to commit"
+
+      - name: 更新adobe.list
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{github.repository}}.git
+          git push		  		  
