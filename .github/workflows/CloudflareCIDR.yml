@@ -1,0 +1,47 @@
+name: 更新 Clash/CloudflareCIDR.list
+
+on:
+  schedule:
+    - cron: '5 * */5 * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  download-and-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'  # 选择 Python 版本
+
+    - name: Install requests library
+      run: |
+        pip install requests
+
+    - name: Download File
+      run: python CloudflareCIDR-main.py  # 这里 CloudflareCIDR-main.py 处理文件
+
+    - name: Set up Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Add and commit changes
+      run: |
+        # Output the status to help debug
+        git status
+        # Add the file to staging area
+        git add Clash/CloudflareCIDR.list
+        # Output the diff to ensure there are changes
+        git diff --cached
+        # Commit the changes if any
+        git commit -m "Downloaded file on $(date "+%Y/%m/%d %H:%M:%S")" || echo "No changes to commit"
+
+    - name: 更新 Clash/CloudflareCIDR.list
+      run: |
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{github.repository}}.git
+        git push
